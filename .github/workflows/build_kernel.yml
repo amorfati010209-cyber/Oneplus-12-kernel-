@@ -1,0 +1,56 @@
+name: Build OnePlus 12 NetHunter Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Kernel (SM8650, Android 16)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Maximize build space
+        run: |
+          echo "Очистка диска для сборки ядра..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-core gnupg flex bison build-essential zip curl zlib1g-dev \
+            gcc-multilib g++-multilib libc6-dev-i386 libncurses5 lib32ncurses5-dev x11proto-core-dev \
+            libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig python3
+
+      - name: Install Repo tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "PATH=$PATH:$HOME/bin" >> $GITHUB_ENV
+
+      - name: Set up Environment and Sync
+        run: |
+          git config --global user.name "NetHunter Builder"
+          git config --global user.email "nethunter@example.com"
+          chmod +x setup_env.sh
+          ./setup_env.sh
+
+      - name: Build Kernel
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnePlus-12-NetHunter-Kernel
+          path: |
+            kernel_platform/out/msm-kernel-pineapple-gki/dist/Image
+            kernel_platform/out/msm-kernel-pineapple-gki/dist/*.ko
